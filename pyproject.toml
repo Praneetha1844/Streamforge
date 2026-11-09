@@ -48,7 +48,7 @@ addopts = "-ra --strict-markers"
 [tool.coverage.run]
 source = ["streamforge"]
 branch = true
-omit = ["src/streamforge/adapters/pubsub_queue.py", "src/streamforge/adapters/postgres_store.py"]
+omit = ["src/streamforge/adapters/postgres_store.py"]
 
 [tool.ruff]
 line-length = 100
