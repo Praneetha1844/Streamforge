@@ -1,0 +1,38 @@
+# Data-quality rules evaluated by `streamforge quality`.
+# Fields are dotted paths into a stored record. See docs/DATA_CONTRACTS.md.
+rules:
+  - name: order_id_present
+    type: not_null
+    field: payload.order_id
+    event_type: order.placed
+
+  - name: order_total_non_negative
+    type: range
+    field: payload.total_cents
+    min: 0
+    event_type: order.placed
+
+  - name: order_item_count_sane
+    type: range
+    field: payload.item_count
+    min: 1
+    max: 1000
+    event_type: order.placed
+
+  - name: payment_id_unique
+    type: unique
+    field: payload.payment_id
+    event_type: payment.settled
+
+  - name: payment_amount_non_negative
+    type: range
+    field: payload.amount_cents
+    min: 0
+    event_type: payment.settled
+
+  # Processing lag: flags records stored more than a day after the event occurred.
+  # Freshness is measured against the evaluation time, so tune max_age_seconds to your feed.
+  - name: events_processed_recently
+    type: freshness
+    field: processed_at
+    max_age_seconds: 86400
