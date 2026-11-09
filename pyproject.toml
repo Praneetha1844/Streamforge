@@ -10,6 +10,14 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
 authors = [{ name = "Praneetha Potharaju" }]
+keywords = ["data-engineering", "event-driven", "pubsub", "postgresql", "terraform", "observability"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3.12",
+  "Typing :: Typed",
+]
 dependencies = [
   "pydantic>=2.7,<3",
   "pydantic-settings>=2.3,<3",
@@ -34,6 +42,12 @@ dev = [
   "types-jsonschema",
   "pre-commit>=3.7,<5",
 ]
+
+[project.urls]
+Homepage = "https://github.com/Praneetha1844/Streamforge"
+Repository = "https://github.com/Praneetha1844/Streamforge"
+Issues = "https://github.com/Praneetha1844/Streamforge/issues"
+Changelog = "https://github.com/Praneetha1844/Streamforge/blob/main/CHANGELOG.md"
 
 [project.scripts]
 streamforge = "streamforge.cli:main"
