@@ -1,0 +1,84 @@
+# Local stack: PostgreSQL, the worker (demo events through the in-process queue), the read API,
+# Prometheus and Grafana. Not run or benchmarked as part of this repository's history.
+#
+#   cp .env.example .env   # then set POSTGRES_PASSWORD and GRAFANA_ADMIN_PASSWORD
+#   docker compose up --build
+
+x-streamforge-env: &streamforge-env
+  SF_STORE_BACKEND: postgres
+  SF_DATABASE_URL: postgresql://streamforge:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/streamforge
+  SF_LOG_LEVEL: INFO
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: streamforge
+      POSTGRES_DB: streamforge
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U streamforge -d streamforge"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  migrate:
+    build: .
+    command: ["migrate"]
+    environment: *streamforge-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  worker:
+    build: .
+    # The in-process queue is not shared between containers, so the worker produces its own
+    # demo events. Real deployments use the Pub/Sub queue (SF_QUEUE_BACKEND=pubsub).
+    command: ["run", "--demo", "50", "--follow", "--poll-interval", "2"]
+    environment: *streamforge-env
+    expose:
+      - "9100"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  api:
+    build: .
+    command: ["serve"]
+    environment:
+      <<: *streamforge-env
+      SF_API_HOST: 0.0.0.0
+    ports:
+      - "8000:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    depends_on:
+      - worker
+      - api
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD in .env}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+
+volumes:
+  pgdata:
