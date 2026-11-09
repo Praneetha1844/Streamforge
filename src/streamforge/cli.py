@@ -173,6 +173,10 @@ def _quality(args: argparse.Namespace, settings: Settings) -> int:
     store, _ = build_stores(settings)
     rules = load_rules(settings.rules_path)
     records = [record.as_dict() for record in store.list_events(None, args.limit)]
+    if not records:
+        # With the default in-memory store a fresh process has no data, so every rule
+        # would pass vacuously. Say so instead of reporting a quiet success.
+        print("warning: no events in the store, rules had nothing to check", file=sys.stderr)
     report = evaluate(rules, records, utc_now())
     print(json.dumps(report.to_dict(), indent=2))
     return 0 if report.passed else 1

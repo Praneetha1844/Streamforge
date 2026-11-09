@@ -34,9 +34,11 @@ def test_demo_run_drains_the_queue_and_exits() -> None:
     assert main(["run", "--demo", "30", "--seed", "3", "--no-metrics-server"]) == 0
 
 
-def test_quality_on_an_empty_store_passes(capsys: pytest.CaptureFixture[str]) -> None:
+def test_quality_on_an_empty_store_passes_but_warns(capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["quality"]) == 0
-    assert json.loads(capsys.readouterr().out)["passed"] is True
+    captured = capsys.readouterr()
+    assert json.loads(captured.out)["passed"] is True
+    assert "no events in the store" in captured.err
 
 
 def test_invalid_configuration_returns_exit_code_2(
