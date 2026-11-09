@@ -106,5 +106,5 @@ procedures have not been rehearsed. Rehearse one before depending on them.
 - Database errors are reduced to the exception class name so connection details are not
   logged or stored.
 - Cloud Run ingress is internal only, and no public invoker is granted.
-- Rotate the database password by tainting `random_password.database` in Terraform and
-  applying, then restarting the services.
+- Rotate the database password with `terraform taint module.cloudsql.random_password.database`,
+  apply, then restart the services so they read the new secret version.

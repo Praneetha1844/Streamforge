@@ -3,7 +3,9 @@ locals {
 
   apis = toset([
     "artifactregistry.googleapis.com",
+    "cloudresourcemanager.googleapis.com",
     "compute.googleapis.com",
+    "iam.googleapis.com",
     "pubsub.googleapis.com",
     "run.googleapis.com",
     "secretmanager.googleapis.com",

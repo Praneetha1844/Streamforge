@@ -67,7 +67,8 @@ terraform validate
   Use a remote backend (see the commented `backend "gcs"` block in `versions.tf`) with a
   private, versioned bucket and restrict read access to it.
 - `terraform.tfvars` is git-ignored. Never commit state or variable files with real values.
-- Rotate the password by tainting `random_password.database` and re-applying.
+- Rotate the password with `terraform taint module.cloudsql.random_password.database`, then
+  apply and restart the services so they read the new secret version.
 
 ## Safety and cost notes
 
