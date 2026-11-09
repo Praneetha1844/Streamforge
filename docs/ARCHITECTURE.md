@@ -61,7 +61,7 @@ sequenceDiagram
 | `adapters/memory_store.py` | In-memory store and dead-letter store |
 | `adapters/postgres_store.py` | PostgreSQL store and dead-letter store |
 | `quality.py` | YAML rules evaluated against stored records |
-| `api.py` | Read-only FastAPI application and `/metrics` |
+| `api.py` | Read-only FastAPI application, optional API key and `/metrics` |
 | `metrics.py`, `tracing.py`, `logging_setup.py` | Observability |
 | `bootstrap.py` | Composition root: builds the object graph from settings |
 | `cli.py` | `generate`, `run`, `replay`, `quality`, `migrate`, `serve` |
@@ -90,6 +90,7 @@ detail and the failure time. See [DATA_CONTRACTS.md](DATA_CONTRACTS.md).
 | Store still unavailable after `SF_MAX_DELIVERY_ATTEMPTS` | Dead-lettered, acknowledged | `SINK_FAILURE` |
 | Dead-letter store unavailable | Message is negatively acknowledged, never dropped | n/a |
 | Duplicate delivery | Acknowledged, counted as a duplicate | n/a |
+| Queue error while pulling or acknowledging | Raised as `QueueError`. The worker loop logs it and retries after the poll interval, or exits with code 1 for a one-shot run. Unacknowledged messages are redelivered and absorbed by idempotent writes. | n/a |
 
 ## Delivery guarantees and limits
 

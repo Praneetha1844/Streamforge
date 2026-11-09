@@ -92,8 +92,8 @@ shared between containers.
 
 | Endpoint | Description |
 |---|---|
-| `GET /events?type=&limit=` | Newest events first. `limit` is 1 to 500. |
-| `GET /aggregates` | Event counts per type and order totals per currency. |
+| `GET /events?type=&limit=` | Newest events first. `limit` is 1 to 500. Needs `X-API-Key` if `SF_API_KEY` is set. |
+| `GET /aggregates` | Event counts per type and order totals per currency. Needs `X-API-Key` if `SF_API_KEY` is set. |
 | `GET /health` | 200 when the store is reachable, otherwise 503. |
 | `GET /metrics` | Prometheus text format. |
 
@@ -110,6 +110,10 @@ All settings are environment variables with the `SF_` prefix. See `.env.example`
 | `SF_MAX_DELIVERY_ATTEMPTS` | `5` | Attempts before a store failure is dead-lettered |
 | `SF_BATCH_SIZE` | `100` | Messages per pull |
 | `SF_METRICS_PORT` | `9100` | Worker metrics port |
+| `SF_API_KEY` | none | Optional shared key for `/events` and `/aggregates`. Treated as a secret. |
+
+The complete list is in [docs/CONFIGURATION.md](docs/CONFIGURATION.md). Commands are in
+[docs/CLI.md](docs/CLI.md) and the API in [docs/API.md](docs/API.md).
 
 ## Repository layout
 
@@ -126,11 +130,15 @@ docs/                 architecture, data contracts, runbook, ADRs
 
 ## Documentation
 
+- [Documentation index](docs/index.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Data contracts](docs/DATA_CONTRACTS.md)
+- [Configuration](docs/CONFIGURATION.md), [command line](docs/CLI.md) and [read API](docs/API.md)
 - [Operations runbook](docs/OPERATIONS.md)
+- [Development guide](docs/DEVELOPMENT.md)
 - [Infrastructure](infra/terraform/README.md)
 - [Architecture decision records](docs/adr)
+- [Roadmap](docs/ROADMAP.md) and [security policy](SECURITY.md)
 
 ## Development
 
@@ -144,8 +152,9 @@ make check
 
 - **Not run or benchmarked.** The code, tests, workflows, Docker files and Terraform have not
   been executed. There are no throughput, latency or reliability measurements.
-- **Adapter tests are missing.** The PostgreSQL and Pub/Sub adapters have no integration
-  tests and are excluded from the coverage report.
+- **No integration tests.** The PostgreSQL and Pub/Sub adapters are tested only for error
+  handling, with fakes. Their real behaviour against a database or broker has not been
+  checked, and the PostgreSQL adapter is excluded from the coverage report.
 - **One connection per call** in the PostgreSQL adapter, and a synchronous pull loop in the
   worker. Both are simple on purpose and not tuned.
 - **No ordering guarantee**, and first write wins on duplicate ids.
@@ -154,19 +163,22 @@ make check
 - **Dead-letter details can contain payload values** from schema library messages.
   Treat dead letters and logs as sensitive.
 - **Migrations are forward-only** with no coordination between concurrent runners.
-- **The read API has no authentication.** It is meant to sit behind internal ingress.
-  Add authentication before exposing it.
+- **Weak API authentication.** There is none by default. `SF_API_KEY` adds one shared key
+  for the data routes. Keep the API behind internal ingress.
+- **No pagination cursor.** `/events` only takes a `limit`.
 - **The Terraform has not been applied** and assumes an existing VPC with private
   services access.
 
 ## Roadmap
+
+The full list is in [docs/ROADMAP.md](docs/ROADMAP.md). The main items:
 
 - Integration tests for PostgreSQL and Pub/Sub using containers or emulators.
 - Publish reproducible benchmarks, with the method and hardware stated.
 - Kafka-compatible broker adapter for a shared local queue.
 - Connection pooling and concurrent message handling.
 - OpenTelemetry exporter configuration and trace propagation from producers.
-- Authentication and rate limiting for the API.
+- Cursor pagination, rate limiting and real identity for the API.
 - Optional schema hot reload and compatibility checks in CI.
 
 ## License
