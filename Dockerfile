@@ -5,7 +5,10 @@ COPY pyproject.toml README.md ./
 COPY src ./src
 RUN pip install --no-cache-dir build && python -m build --wheel
 
-FROM python:3.12-slim
+FROM python:3.12-slim-bookworm
+LABEL org.opencontainers.image.source="https://github.com/Praneetha1844/Streamforge"
+LABEL org.opencontainers.image.licenses="MIT"
+ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1
 RUN useradd --system --create-home --uid 10001 app
