@@ -5,6 +5,8 @@ import pytest
 from conftest import ROOT
 
 from streamforge.cli import main
+from streamforge.domain import QueueError
+from streamforge.pipeline import Processor
 
 
 @pytest.fixture(autouse=True)
@@ -48,3 +50,29 @@ def test_invalid_configuration_returns_exit_code_2(
 def test_migrate_without_database_url_fails(capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["migrate"]) == 2
     assert "SF_DATABASE_URL" in capsys.readouterr().err
+
+
+def test_generate_rejects_a_negative_count(capsys: pytest.CaptureFixture[str]) -> None:
+    assert main(["generate", "--count", "-1"]) == 2
+    assert "count must be >= 0" in capsys.readouterr().err
+
+
+def test_generate_rejects_an_invalid_ratio(capsys: pytest.CaptureFixture[str]) -> None:
+    assert main(["generate", "--invalid-ratio", "2"]) == 2
+    assert "invalid_ratio" in capsys.readouterr().err
+
+
+def test_replay_refuses_the_in_process_queue(capsys: pytest.CaptureFixture[str]) -> None:
+    assert main(["replay"]) == 2
+    assert "SF_QUEUE_BACKEND=pubsub" in capsys.readouterr().err
+
+
+def test_one_shot_run_exits_nonzero_when_the_queue_is_broken(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def broken(self: object, max_messages: int) -> None:
+        raise QueueError("simulated outage")
+
+    monkeypatch.setattr(Processor, "process_batch", broken)
+
+    assert main(["run", "--no-metrics-server"]) == 1

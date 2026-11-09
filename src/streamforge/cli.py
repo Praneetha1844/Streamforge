@@ -111,16 +111,16 @@ def _run(args: argparse.Namespace, settings: Settings) -> int:
     stop = threading.Event()
     previous = {sig: signal.signal(sig, lambda *_: stop.set()) for sig in _STOP_SIGNALS}
     try:
-        _loop(app, args, settings, poll, stop)
+        return _loop(app, args, settings, poll, stop)
     finally:
         for sig, handler in previous.items():
             signal.signal(sig, handler)
-    return 0
 
 
 def _loop(
     app: App, args: argparse.Namespace, settings: Settings, poll: float, stop: threading.Event
-) -> None:
+) -> int:
+    """Process batches until stopped. Return 0, or 1 if a one-shot run hit a queue error."""
     cycle = 0
     while not stop.is_set():
         if args.demo and (args.follow or cycle == 0):
@@ -129,7 +129,9 @@ def _loop(
         try:
             result = app.processor.process_batch(settings.batch_size)
         except QueueError:
-            log.exception("queue error, backing off")
+            log.exception("queue error")
+            if not args.follow:
+                return 1  # a one-shot run must not spin forever on a broken queue
             stop.wait(poll)
             continue
         if result.total:
@@ -146,9 +148,20 @@ def _loop(
             stop.wait(poll)
         else:
             break
+    return 0
 
 
 def _replay(args: argparse.Namespace, settings: Settings) -> int:
+    if settings.queue_backend == "local":
+        # The in-process queue disappears when this command exits. Replay deletes each dead
+        # letter after publishing it, so replaying into it would lose the messages.
+        print(
+            "replay needs a shared queue: set SF_QUEUE_BACKEND=pubsub (and the SF_PUBSUB_* "
+            "settings). The in-process queue is discarded on exit, so replayed messages "
+            "would be lost.",
+            file=sys.stderr,
+        )
+        return 2
     app = build_app(settings)
     reasons = [RejectReason(args.reason)] if args.reason else None
     count = replay(app.dead_letters, app.queue, reasons, args.limit)
