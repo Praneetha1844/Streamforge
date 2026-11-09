@@ -25,6 +25,8 @@ from streamforge.quality import evaluate, load_rules
 
 log = logging.getLogger("streamforge.cli")
 
+_STOP_SIGNALS = (signal.SIGINT, signal.SIGTERM)
+
 
 def build_parser() -> argparse.ArgumentParser:
     """Create the argument parser."""
@@ -107,9 +109,18 @@ def _run(args: argparse.Namespace, settings: Settings) -> int:
         start_http_server(settings.metrics_port, registry=app.metrics.registry)
     poll = args.poll_interval or settings.poll_interval_seconds
     stop = threading.Event()
-    for sig in (signal.SIGINT, signal.SIGTERM):
-        signal.signal(sig, lambda *_: stop.set())
+    previous = {sig: signal.signal(sig, lambda *_: stop.set()) for sig in _STOP_SIGNALS}
+    try:
+        _loop(app, args, settings, poll, stop)
+    finally:
+        for sig, handler in previous.items():
+            signal.signal(sig, handler)
+    return 0
 
+
+def _loop(
+    app: App, args: argparse.Namespace, settings: Settings, poll: float, stop: threading.Event
+) -> None:
     cycle = 0
     while not stop.is_set():
         if args.demo and (args.follow or cycle == 0):
@@ -135,7 +146,6 @@ def _run(args: argparse.Namespace, settings: Settings) -> int:
             stop.wait(poll)
         else:
             break
-    return 0
 
 
 def _replay(args: argparse.Namespace, settings: Settings) -> int:
