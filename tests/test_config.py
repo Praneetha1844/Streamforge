@@ -38,3 +38,9 @@ def test_environment_variables_override_defaults(monkeypatch: pytest.MonkeyPatch
 def test_out_of_range_values_are_rejected() -> None:
     with pytest.raises(ValidationError):
         Settings(_env_file=None, batch_size=0)  # type: ignore[call-arg]
+
+
+def test_api_key_is_optional_and_hidden_in_repr() -> None:
+    assert Settings(_env_file=None).api_key is None  # type: ignore[call-arg]
+    settings = Settings(_env_file=None, api_key="s3cret")  # type: ignore[call-arg,arg-type]
+    assert "s3cret" not in repr(settings)

@@ -33,6 +33,8 @@ class Settings(BaseSettings):
     metrics_port: int = Field(default=9100, ge=1, le=65535)
     api_host: str = "127.0.0.1"
     api_port: int = Field(default=8000, ge=1, le=65535)
+    # When set, /events and /aggregates require this value in the X-API-Key header.
+    api_key: SecretStr | None = None
     log_level: str = "INFO"
 
     @model_validator(mode="after")

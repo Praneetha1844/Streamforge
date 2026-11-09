@@ -74,3 +74,29 @@ class DownStore:
 def test_store_outage_returns_503(path: str) -> None:
     client = TestClient(create_app(DownStore()))  # type: ignore[arg-type]
     assert client.get(path).status_code == 503
+
+
+@pytest.fixture
+def locked_client(harness: Harness) -> TestClient:
+    harness.publish(make_event(id="o1"))
+    harness.processor.process_batch(10)
+    return TestClient(create_app(harness.store, harness.metrics, api_key="s3cret"))
+
+
+@pytest.mark.parametrize("path", ["/events", "/aggregates"])
+def test_data_routes_require_the_api_key_when_one_is_set(
+    locked_client: TestClient, path: str
+) -> None:
+    assert locked_client.get(path).status_code == 401
+    assert locked_client.get(path, headers={"X-API-Key": "wrong"}).status_code == 401
+    assert locked_client.get(path, headers={"X-API-Key": "s3cret"}).status_code == 200
+
+
+def test_health_and_metrics_stay_open_when_a_key_is_set(locked_client: TestClient) -> None:
+    assert locked_client.get("/health").status_code == 200
+    assert locked_client.get("/metrics").status_code == 200
+
+
+def test_non_ascii_key_is_rejected_without_an_error(locked_client: TestClient) -> None:
+    response = locked_client.get("/events", headers={"X-API-Key": "café".encode()})
+    assert response.status_code == 401
