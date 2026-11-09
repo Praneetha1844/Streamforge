@@ -1,0 +1,9 @@
+# Copy to terraform.tfvars (git-ignored) and fill in. Contains no secrets.
+project_id        = "your-gcp-project-id"
+region            = "europe-west1"
+environment       = "dev"
+api_image         = "europe-west1-docker.pkg.dev/your-gcp-project-id/streamforge-dev/streamforge:0.1.0"
+worker_image      = "europe-west1-docker.pkg.dev/your-gcp-project-id/streamforge-dev/streamforge:0.1.0"
+vpc_network_id    = "projects/your-gcp-project-id/global/networks/your-vpc"
+vpc_subnetwork_id = "projects/your-gcp-project-id/regions/europe-west1/subnetworks/your-subnet"
+db_tier           = "db-custom-1-3840"
