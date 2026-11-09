@@ -30,8 +30,9 @@ rules:
     min: 0
     event_type: payment.settled
 
-  # Processing lag: flags records stored more than a day after the event occurred.
-  # Freshness is measured against the evaluation time, so tune max_age_seconds to your feed.
+  # Staleness: flags records whose processed_at is more than a day before the evaluation time.
+  # Over a feed that has gone quiet this fails, which is the point. Tune max_age_seconds to
+  # your feed. It does not measure processing lag (occurred_at to processed_at).
   - name: events_processed_recently
     type: freshness
     field: processed_at
